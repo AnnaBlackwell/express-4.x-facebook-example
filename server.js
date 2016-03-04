@@ -1,7 +1,19 @@
+'use strict'
 var express = require('express');
 var passport = require('passport');
 var Strategy = require('passport-facebook').Strategy;
 
+require('dotenv').load()
+var knex = require('knex')({
+  client: 'sqlite3',
+  connection: {
+    filename: "./data/mydb.sqlite"
+  },
+  useNullAsDefault: true
+})
+
+// Set default node environment to development
+process.env.NODE_ENV = process.env.NODE_ENV || 'development'
 
 // Configure the Facebook strategy for use by Passport.
 //
@@ -15,15 +27,15 @@ passport.use(new Strategy({
     clientSecret: process.env.CLIENT_SECRET,
     callbackURL: 'http://localhost:3000/login/facebook/return'
   },
-  function(accessToken, refreshToken, profile, cb) {
+  function(accessToken, refreshToken, profile, callback) {
+
     // In this example, the user's Facebook profile is supplied as the user
     // record.  In a production-quality application, the Facebook profile should
     // be associated with a user record in the application's database, which
     // allows for account linking and authentication with other identity
     // providers.
-    return cb(null, profile);
+    return callback(null, profile);
   }));
-
 
 // Configure Passport authenticated session persistence.
 //
@@ -34,12 +46,12 @@ passport.use(new Strategy({
 // from the database when deserializing.  However, due to the fact that this
 // example does not have a database, the complete Twitter profile is serialized
 // and deserialized.
-passport.serializeUser(function(user, cb) {
-  cb(null, user);
+passport.serializeUser(function(user, callback) {
+  callback(null, user);
 });
 
-passport.deserializeUser(function(obj, cb) {
-  cb(null, obj);
+passport.deserializeUser(function(obj, callback) {
+  callback(null, obj);
 });
 
 
@@ -80,13 +92,57 @@ app.get('/login/facebook',
 app.get('/login/facebook/return', 
   passport.authenticate('facebook', { failureRedirect: '/login' }),
   function(req, res) {
+    //if successful authentication, redirect home.
     res.redirect('/');
   });
 
 app.get('/profile',
   require('connect-ensure-login').ensureLoggedIn(),
   function(req, res){
+    console.log(req.user)
     res.render('profile', { user: req.user });
   });
 
-app.listen(3000);
+app.get('/auth/facebook', 
+  passport.authenticate('facebook', {scope: ['user_friends', 'manage_pages', 'email', 'user_likes', ]}))
+
+// app.post('/profile',
+//   function(req, res){
+
+//       res.render('profile', { user: req.user });
+//   });
+
+
+app.listen(3000, function() {
+  console.log('Server is running on Port: 3000')
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
